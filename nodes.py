@@ -142,9 +142,15 @@ class Hy3DModelLoader:
 class DownloadAndLoadHy3DDelightModel:
     @classmethod
     def INPUT_TYPES(s):
+        paths = []
+        for search_path in folder_paths.get_folder_paths("diffusers"):
+            if os.path.exists(search_path):
+                for root, subdir, files in os.walk(search_path, followlinks=True):
+                    if "model_index.json" in files:
+                        paths.append(os.path.relpath(root, start=search_path))
         return {
             "required": {
-                "model": (["hunyuan3d-delight-v2-0"],),
+                "model_path": (paths,),
             },
             "optional": {
                 "compile_args": ("HY3DCOMPILEARGS", {"tooltip": "torch.compile settings, when connected to the model loader, torch.compile of the selected models is attempted. Requires Triton and torch 2.5.0 is recommended"}),
@@ -156,11 +162,15 @@ class DownloadAndLoadHy3DDelightModel:
     FUNCTION = "loadmodel"
     CATEGORY = "Hunyuan3DWrapper"
 
-    def loadmodel(self, model, compile_args=None):
+    def loadmodel(self, model_path, compile_args=None):
+        for search_path in folder_paths.get_folder_paths("diffusers"):
+            if os.path.exists(search_path):
+                path = os.path.join(search_path, model_path)
+                if os.path.exists(path):
+                    model_path = path
+                    break
+        
         device = mm.get_torch_device()
-
-        download_path = os.path.join(folder_paths.models_dir,"diffusers")
-        model_path = os.path.join(download_path, model)
         
         if not os.path.exists(model_path):
             log.info(f"Downloading model to: {model_path}")
@@ -168,7 +178,7 @@ class DownloadAndLoadHy3DDelightModel:
             snapshot_download(
                 repo_id="tencent/Hunyuan3D-2",
                 allow_patterns=["*hunyuan3d-delight-v2-0*"],
-                local_dir=download_path,
+                local_dir=model_path,
                 local_dir_use_symlinks=False,
             )
 
@@ -254,9 +264,15 @@ class Hy3DDelightImage:
 class DownloadAndLoadHy3DPaintModel:
     @classmethod
     def INPUT_TYPES(s):
+        paths = []
+        for search_path in folder_paths.get_folder_paths("diffusers"):
+            if os.path.exists(search_path):
+                for root, subdir, files in os.walk(search_path, followlinks=True):
+                    if "model_index.json" in files:
+                        paths.append(os.path.relpath(root, start=search_path))
         return {
             "required": {
-                "model": (["hunyuan3d-paint-v2-0"],),
+                "model_path": (paths,),
             },
             "optional": {
                 "compile_args": ("HY3DCOMPILEARGS", {"tooltip": "torch.compile settings, when connected to the model loader, torch.compile of the selected models is attempted. Requires Triton and torch 2.5.0 is recommended"}),
@@ -268,21 +284,24 @@ class DownloadAndLoadHy3DPaintModel:
     FUNCTION = "loadmodel"
     CATEGORY = "Hunyuan3DWrapper"
 
-    def loadmodel(self, model, compile_args=None):
+    def loadmodel(self, model_path, compile_args=None):
+        for search_path in folder_paths.get_folder_paths("diffusers"):
+            if os.path.exists(search_path):
+                path = os.path.join(search_path, model_path)
+                if os.path.exists(path):
+                    model_path = path
+                    break
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
-
-        download_path = os.path.join(folder_paths.models_dir,"diffusers")
-        model_path = os.path.join(download_path, model)
         
         if not os.path.exists(model_path):
             log.info(f"Downloading model to: {model_path}")
             from huggingface_hub import snapshot_download
             snapshot_download(
                 repo_id="tencent/Hunyuan3D-2",
-                allow_patterns=[f"*{model}*"],
+                allow_patterns=[f"*hunyuan3d-paint-v2-0**"],
                 ignore_patterns=["*diffusion_pytorch_model.bin"],
-                local_dir=download_path,
+                local_dir=model_path,
                 local_dir_use_symlinks=False,
             )
 
